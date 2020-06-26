@@ -27,5 +27,13 @@ namespace CalculoJuros.Api.ApiServices
 
             return JsonSerializer.Deserialize<decimal>(json);
         }
+
+        public async Task<string> HealthCheck(CancellationToken cancellationToken)
+        {
+            var response = (await httpClient.GetAsync("health", cancellationToken))
+               .EnsureSuccessStatusCode();
+
+            return await response.Content.ReadAsStringAsync();
+        }
     }
 }

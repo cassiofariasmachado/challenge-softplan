@@ -23,6 +23,8 @@ namespace TaxaJuros.Api
         {
             services.AddControllers();
 
+            services.AddHealthChecks();
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo
@@ -60,6 +62,7 @@ namespace TaxaJuros.Api
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHealthChecks("/health");
             });
         }
     }

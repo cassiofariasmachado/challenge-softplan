@@ -1,15 +1,22 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Net.Mime;
 using System.Reflection;
+using System.Text.Json;
 using CalculoJuros.Api.ApiServices;
 using CalculoJuros.Api.ApiServices.Interfaces;
+using CalculoJuros.Api.HealthChecks;
 using CalculoJuros.Api.Services;
 using CalculoJuros.Api.Services.Interfaces;
 using CalculoJuros.Api.Settings;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 
@@ -34,6 +41,9 @@ namespace CalculoJuros.Api
 
             services.AddScoped<TaxaJurosSettings>();
             services.AddScoped<ShowMeTheCodeSettings>();
+
+            services.AddHealthChecks()
+                .AddCheck<TaxaJurosHealthCheck>("taxaJurosApi");
 
             services.AddSwaggerGen(c =>
             {
@@ -68,6 +78,22 @@ namespace CalculoJuros.Api
             app.UseRouting();
 
             app.UseAuthorization();
+
+            app.UseHealthChecks("/health", new HealthCheckOptions
+            {
+                ResponseWriter = async (context, report) =>
+                {
+                    var result = JsonSerializer.Serialize(new
+                    {
+                        status = report.Status.ToString(),
+                        checks = report.Entries.Select(c => new { check = c.Key, result = c.Value.Status.ToString() }),
+                    });
+
+                    context.Response.ContentType = MediaTypeNames.Application.Json;
+
+                    await context.Response.WriteAsync(result);
+                }
+            });
 
             app.UseEndpoints(endpoints =>
             {
